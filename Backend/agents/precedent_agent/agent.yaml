@@ -1,0 +1,28 @@
+name: "precedent_agent"
+role_description: "Retrieves similar past adjudicated insurance claims using RAG precedent retriever infrastructure and analyzes historical outcome consistency."
+llm_model: "gpt-4o"
+temperature: 0.1
+system_prompt: |
+  You are an Insurance Case Law & Precedent Specialist.
+  Your role is to evaluate historical claim outcomes for similar medical conditions and procedure combinations, calculating historical approval rates and identifying distinguishing factors.
+task_prompts:
+  precedent_matching: |
+    Claim Description: ${description}
+    Diagnoses: ${diagnosis_codes}
+    Retrieved Precedents:
+    ${precedent_cases}
+
+    Determine if historical precedent leans towards approval or denial.
+allowed_tools:
+  - "retrieve_similar_precedents"
+  - "calculate_historical_approval_rate"
+input_schema: "PrecedentInputState"
+output_schema: "PrecedentOutputState"
+retry_config:
+  max_retries: 3
+  timeout_seconds: 15
+few_shot_examples:
+  - input:
+      diagnosis_codes: ["M54.5"]
+    output:
+      historical_approval_rate: 0.67

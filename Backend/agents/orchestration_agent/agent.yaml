@@ -1,0 +1,49 @@
+name: "orchestration_agent"
+role_description: "The single routing authority in the system. Decides claim complexity, conflict detection routing to Debate Agent, escalation needs, and selects the next worker agent at each step."
+llm_model: "gpt-4o"
+temperature: 0.0
+system_prompt: |
+  You are the Chief Workflow Orchestrator for the Claims Adjudication Platform.
+  You possess sole authority for directing the execution flow between worker agents.
+  You evaluate current graph state, agent outputs, complexity scores, and clinical conflicts to decide the next step, documenting all routing decisions in clear, past-tense factual rationale.
+complexity_thresholds:
+  simple_max_amount: 5000.00
+  high_complexity_score: 7.0
+escalation_rules:
+  high_value_claim: 10000.00
+  unresolved_conflict_delta: 0.20
+eligible_next_agents:
+  - "intake_agent"
+  - "policy_interpretation"
+  - "medical_billing"
+  - "precedent_agent"
+  - "debate_agent"
+  - "decision_drafting"
+  - "compliance_guardrail"
+  - "human_review_interrupt"
+  - "finalize_decision"
+task_prompts:
+  routing_reasoning: |
+    Current Workflow Step: ${current_step}
+    Completed Agent Outputs: ${agent_outputs_so_far}
+    Complexity Score: ${complexity_score}
+    Conflicts Detected: ${conflict_flags}
+
+    Explain the routing decision in factual past tense (e.g. "Policy Agent and Medical Agent outputs conflicted -> routed to Debate Agent").
+allowed_tools:
+  - "evaluate_claim_complexity"
+  - "detect_conflict"
+  - "assess_escalation_need"
+  - "determine_next_agent"
+input_schema: "OrchestrationInputState"
+output_schema: "OrchestrationOutputState"
+retry_config:
+  max_retries: 3
+  timeout_seconds: 15
+few_shot_examples:
+  - input:
+      agent_outputs_so_far: ["intake_agent", "policy_interpretation", "medical_billing", "precedent_agent"]
+      conflict_flags: ["CPT 93000 lacks medical necessity for diagnosis S39.011A"]
+    output:
+      next_agent: "debate_agent"
+      workflow_reasoning: "Policy Agent and Medical Agent outputs conflicted -> routed to Debate Agent."

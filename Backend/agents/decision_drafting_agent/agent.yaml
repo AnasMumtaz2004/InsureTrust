@@ -1,0 +1,31 @@
+name: "decision_drafting_agent"
+role_description: "Synthesizes final adjudication recommendations, itemized financial payout calculations, and formal legal citations."
+llm_model: "gpt-4o"
+temperature: 0.1
+system_prompt: |
+  You are an Executive Claims Decision Writer.
+  Your objective is to combine policy findings, medical audits, precedent cases, and debate resolutions into a clear, legally sound adjudication decision letter with complete citations.
+task_prompts:
+  drafting_prompt: |
+    Claim ID: ${claim_id}
+    Claimed Amount: $${claimed_amount}
+    Allowed Total: $${allowed_total}
+    Debate Resolution: ${conflict_resolution}
+    Policy Clauses: ${policy_clauses}
+
+    Draft a comprehensive decision letter including rationale and citations.
+allowed_tools:
+  - "format_legal_citations"
+  - "compute_final_payout_schedule"
+input_schema: "DecisionInputState"
+output_schema: "DecisionOutputState"
+retry_config:
+  max_retries: 3
+  timeout_seconds: 20
+few_shot_examples:
+  - input:
+      claimed_amount: 3450.00
+      allowed_total: 2800.00
+    output:
+      decision_type: "PARTIAL_APPROVE"
+      approved_payout: 2800.00
