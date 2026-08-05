@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0F172A;
+  --color-accent: #14B8A6;
+  --color-background: #F8FAFC;
+  --color-secondary: #64748B;
+  --color-border: #E2E8F0;
+  --color-surface: #FFFFFF;
+  --color-warning: #F59E0B;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Base styles */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-secondary);
+}
+
+/* Eyebrow label style */
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+/* Functional transitions only */
+.transition-drawer {
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-modal {
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+.transition-tab {
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.transition-chat {
+  animation: chatAppear 200ms ease-out;
+}
+
+@keyframes chatAppear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

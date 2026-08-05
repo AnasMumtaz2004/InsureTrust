@@ -1,11 +1,28 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database.database import get_db
-from database.models import Claim
+from database.models import Claim, ChatMessage
 from schemas.ops import ExplanationResponse, QAChatRequest, QAChatResponse
 from graph.main_graph import claims_graph
+from config import settings
+
+try:
+    from langchain_core.messages import HumanMessage
+    from langchain_groq import ChatGroq
+except ImportError:
+    HumanMessage = None
+    ChatGroq = None
 
 router = APIRouter(prefix="/explanation", tags=["Claimant Explanation & Q&A"])
+
+
+def _build_groq_llm():
+    if ChatGroq is None or HumanMessage is None:
+        raise RuntimeError("Groq integration is unavailable")
+    if not settings.GROQ_API_KEY:
+        raise RuntimeError("GROQ_API_KEY is not configured")
+    return ChatGroq(model="llama-3.1-8b-instant", groq_api_key=settings.GROQ_API_KEY, temperature=0.2)
 
 @router.get("/{claim_id}", response_model=ExplanationResponse)
 def get_claimant_explanation(claim_id: str, db: Session = Depends(get_db)):
@@ -48,17 +65,36 @@ def ask_explanation_question(req: QAChatRequest, db: Session = Depends(get_db)):
     if not db_claim:
         raise HTTPException(status_code=404, detail=f"Claim {req.claim_id} not found.")
 
-    q = req.user_question.lower()
-    if "appeal" in q or "disagree" in q:
-        answer = "To appeal this decision, submit formal written documentation including secondary medical opinions to our appeals department within 30 days."
-    elif "deductible" in q or "payout" in q:
-        answer = f"Your approved payout of ${db_claim.approved_amount:,.2f} reflects standard coinsurance and deductible terms."
+    try:
+        llm = _build_groq_llm()
+    except RuntimeError:
+        answer = (
+            f"Your claim {db_claim.claim_number} was reviewed against policy terms and billing standards. "
+            f"The current approved amount is ${db_claim.approved_amount:,.2f}."
+        )
     else:
-        answer = f"Regarding '{req.user_question}': Your claim was reviewed against active policy terms and diagnostic coding standards."
+        context = (
+            f"Claim number: {db_claim.claim_number}\n"
+            f"Status: {db_claim.status}\n"
+            f"Total claimed amount: ${db_claim.total_claimed_amount:,.2f}\n"
+            f"Approved amount: ${db_claim.approved_amount:,.2f}\n"
+            f"Policy number: {db_claim.policy_number}\n"
+        )
+        prompt = (
+            "You are a concise insurance claims explanation assistant. "
+            "Answer the user's question about the claim in plain language. "
+            f"Use this claim context:\n{context}\n"
+            f"User question: {req.user_question}"
+        )
+        answer = llm.invoke([HumanMessage(content=prompt)]).content
+
+    db.add(ChatMessage(claim_id=req.claim_id, role="user", content=req.user_question))
+    db.add(ChatMessage(claim_id=req.claim_id, role="assistant", content=answer))
+    db.commit()
 
     return QAChatResponse(
         claim_id=req.claim_id,
         question=req.user_question,
         answer=answer,
-        sources=["Policy Terms & Conditions", "Adjudication Decision Audit Trail"]
+        sources=["Policy Terms & Conditions", "Adjudication Decision Audit Trail"],
     )

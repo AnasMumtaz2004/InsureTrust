@@ -11,7 +11,7 @@ def get_platform_kpis(db: Session = Depends(get_db)):
     total_claims = db.query(Claim).count()
     approved_claims = db.query(Claim).filter(Claim.status.in_(["APPROVED", "COMPLETED_APPROVE"])).count()
     denied_claims = db.query(Claim).filter(Claim.status.in_(["DENIED", "COMPLETED_DENY"])).count()
-    pending_claims = db.query(Claim).filter(Claim.status.in_(["PENDING_APPROVAL", "PAUSED_FOR_HUMAN_REVIEW"])).count()
+    pending_claims = db.query(Claim).filter(Claim.status.in_(["PENDING_APPROVAL", "PAUSED_FOR_HUMAN_REVIEW", "IN_REVIEW"])).count()
     overridden_claims = db.query(Decision).filter(Decision.human_overridden == True).count()
 
     approval_rate = round(approved_claims / total_claims, 2) if total_claims > 0 else 0.0
@@ -25,5 +25,20 @@ def get_platform_kpis(db: Session = Depends(get_db)):
         "human_overridden_claims": overridden_claims,
         "automated_approval_rate": approval_rate,
         "human_override_rate": override_rate,
-        "average_processing_time_seconds": 2.4
+        "average_processing_time_seconds": 2.4,
     }
+
+
+@router.get("/audit-logs")
+def get_audit_logs(db: Session = Depends(get_db)):
+    logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(25).all()
+    return [
+        {
+            "id": log.id,
+            "action": log.action,
+            "agent_name": log.agent_name,
+            "claim_id": log.claim_id,
+            "timestamp": log.timestamp.isoformat(),
+        }
+        for log in logs
+    ]

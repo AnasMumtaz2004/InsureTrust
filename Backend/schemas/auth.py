@@ -1,12 +1,12 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import Optional
 
 class UserLoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 class UserRegisterRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     full_name: str
     role: str = "claimant"  # "claimant", "adjudicator", "admin"

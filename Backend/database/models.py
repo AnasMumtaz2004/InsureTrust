@@ -44,6 +44,7 @@ class Claim(Base):
     decisions = relationship("Decision", back_populates="claim", cascade="all, delete-orphan")
     debate_transcripts = relationship("DebateTranscript", back_populates="claim", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="claim", cascade="all, delete-orphan")
+    chat_messages = relationship("ChatMessage", back_populates="claim", cascade="all, delete-orphan")
 
 class Policy(Base):
     __tablename__ = "policies"
@@ -109,6 +110,17 @@ class AuditLog(Base):
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
     claim = relationship("Claim", back_populates="audit_logs")
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(String, primary_key=True, index=True)
+    claim_id = Column(String, ForeignKey("claims.id"), nullable=False)
+    role = Column(String, nullable=False)  # user/assistant/system
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    claim = relationship("Claim", back_populates="chat_messages")
 
 class PrecedentRecord(Base):
     __tablename__ = "precedent_records"
