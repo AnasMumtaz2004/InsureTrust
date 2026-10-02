@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, DollarSign, Clock, PiggyBank, Plus } from 'lucide-react';
 import { Card, KpiCard } from '../components/shared';
 import { ClaimDrawer } from '../components/client';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../auth/useAuth';
 import { getClaims } from '../api/clientApi';
 
 const DashboardPage = () => {

@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import Logo from '../assets/Logo';
 import { Button } from '../components/shared';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../auth/useAuth';
 
 const navLinks = [
   { to: '/', label: 'Home' },

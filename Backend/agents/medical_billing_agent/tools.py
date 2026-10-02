@@ -1,13 +1,7 @@
 from typing import List, Dict, Any
 from langchain_core.tools import tool
 
-# Standard CPT fee schedule reference dictionary
-FEE_SCHEDULE = {
-    "99214": 180.00,  # Office Visit Level 4
-    "93000": 75.00,   # ECG Complete
-    "72148": 850.00,  # MRI Lumbar Spine
-    "97110": 65.00    # Physical Therapy Exercise
-}
+from config import settings
 
 @tool
 def validate_cpt_icd_compatibility(diagnosis_codes: List[str], procedure_codes: List[str]) -> List[str]:
@@ -24,12 +18,12 @@ def calculate_fee_schedule_allowed(procedure_codes: List[str], claimed_amount: f
     allowed = 0.0
     itemized = []
     for proc in procedure_codes:
-        std_fee = FEE_SCHEDULE.get(proc, 150.00)
+        std_fee = settings.billing.fee_schedule.get(proc, settings.billing.default_fee)
         allowed += std_fee
         itemized.append({"procedure": proc, "allowed": std_fee})
 
     if not procedure_codes:
-        allowed = claimed_amount * 0.8  # Fallback estimate
+        allowed = claimed_amount * settings.billing.no_code_allowed_ratio  # Fallback estimate
 
     excess = max(0.0, claimed_amount - allowed)
     return {

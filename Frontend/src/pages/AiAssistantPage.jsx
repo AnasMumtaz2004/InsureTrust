@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, MessageSquare } from 'lucide-react';
+import { Home, MessageSquare, Shield } from 'lucide-react';
 import { ChatComposer, IconButton } from '../components/shared';
 import AiAvatar from '../assets/AiAvatar';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../auth/useAuth';
 import { postClaimChat, getClaims } from '../api/clientApi';
 
 const iconRailItems = [

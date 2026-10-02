@@ -1,12 +1,13 @@
 from typing import List, Dict, Any
 from langchain_core.tools import tool
+from config import settings
 
 @tool
 def evaluate_argument_strength(arguments: List[str], evidence_count: int) -> float:
     """Evaluates numerical strength score (0.0 to 1.0) of argument list based on supporting evidence count."""
     if not arguments:
-        return 0.10
-    base = min(0.95, 0.40 + (len(arguments) * 0.15) + (evidence_count * 0.10))
+        return settings.debate.per_evidence
+    base = min(settings.debate.cap, settings.debate.base + (len(arguments) * settings.debate.per_argument) + (evidence_count * settings.debate.per_evidence))
     return round(base, 2)
 
 @tool

@@ -1,28 +1,38 @@
-name: "policy_interpretation_agent"
-role_description: "Retrieves relevant insurance policy clauses via RAG infrastructure and evaluates coverage, exclusions, waiting periods, and deductibles."
-llm_model: "gpt-4o"
-temperature: 0.1
-system_prompt: |
-  You are a Legal & Policy Interpretation Expert in insurance law.
-  Your task is to analyze retrieved policy clauses against claimed diagnoses/procedures, identifying applicable exclusions, deductible requirements, or coverage caps.
+# Model and temperature are set in config.json (llm, agents.<name>)
+name: policy_interpretation_agent
+role_description: Retrieves relevant insurance policy clauses via RAG infrastructure
+  and evaluates coverage, exclusions, waiting periods, and deductibles.
+system_prompt: 'You are a Legal & Policy Interpretation Expert in insurance law.
+
+  Your task is to analyze retrieved policy clauses against claimed diagnoses/procedures,
+  identifying applicable exclusions, deductible requirements, or coverage caps.
+
+  '
 task_prompts:
-  policy_analysis: |
-    Given the claim description: "${description}"
+  policy_analysis: 'Given the claim description: "${description}"
+
     And diagnosis codes: ${diagnosis_codes}
+
     Retrieved policy clauses:
+
     ${policy_clauses}
 
-    Synthesize whether the claim is covered under the policy clauses and highlight any potential exclusion triggers.
+
+    Synthesize whether the claim is covered under the policy clauses and highlight
+    any potential exclusion triggers.
+
+    '
 allowed_tools:
-  - "retrieve_policy_clauses"
-  - "check_exclusion_triggers"
-input_schema: "PolicyInputState"
-output_schema: "PolicyOutputState"
+- retrieve_policy_clauses
+- check_exclusion_triggers
+input_schema: PolicyInputState
+output_schema: PolicyOutputState
 retry_config:
   max_retries: 3
   timeout_seconds: 20
 few_shot_examples:
-  - input:
-      diagnosis_codes: ["M54.5"]
-    output:
-      coverage_status: "COVERED_WITH_EXCLUSION_CHECK"
+- input:
+    diagnosis_codes:
+    - M54.5
+  output:
+    coverage_status: COVERED_WITH_EXCLUSION_CHECK

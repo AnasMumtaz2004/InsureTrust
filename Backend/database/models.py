@@ -2,6 +2,7 @@ import datetime
 from sqlalchemy import Column, String, Integer, Float, DateTime, Text, JSON, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from database.database import Base
+from database.enums import ClaimStatus
 
 class Organization(Base):
     __tablename__ = "organizations"
@@ -20,7 +21,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
-    role = Column(String, default="claimant")  # "claimant", "adjudicator", "admin"
+    role = Column(String, default="customer")  # "customer", "staff", "admin"
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -33,12 +34,13 @@ class Claim(Base):
     claim_number = Column(String, unique=True, index=True, nullable=False)
     claimant_id = Column(String, ForeignKey("users.id"), nullable=False)
     policy_number = Column(String, nullable=False)
-    status = Column(String, default="SUBMITTED")  # SUBMITTED, IN_REVIEW, DEBATING, PENDING_APPROVAL, APPROVED, DENIED, OVERRIDDEN
+    status = Column(String, default=ClaimStatus.SUBMITTED.value)
     complexity_score = Column(Float, nullable=True)
     total_claimed_amount = Column(Float, default=0.0)
     approved_amount = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
 
     documents = relationship("Document", back_populates="claim", cascade="all, delete-orphan")
     decisions = relationship("Decision", back_populates="claim", cascade="all, delete-orphan")

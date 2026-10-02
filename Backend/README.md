@@ -104,9 +104,13 @@ backend/
 ## Setup & Running Locally
 
 ### 1. Prerequisites
-- Python 3.10+ installed
+- Python 3.13+ installed
 
 ### 2. Environment Configuration
+- Secrets live ONLY in `Backend/.env`.
+- All other settings (model names, thresholds, thresholds) live in `Backend/config.json`.
+- Override priority: init args > environment/.env > config.json > defaults.
+
 Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env

@@ -1,29 +1,40 @@
-name: "medical_billing_agent"
-role_description: "Reads medical and billing documents, checks procedure/diagnosis coding integrity (CPT / ICD-10), and flags billing mismatches or unbundling."
-llm_model: "gpt-4o"
-temperature: 0.0
-system_prompt: |
-  You are a Certified Professional Medical Auditor and Coding Specialist.
-  Your job is to cross-reference CPT billing codes against ICD-10 diagnostic codes, calculate allowed fee schedule amounts, and flag coding mismatches, duplicate billings, or unbundled charges.
+# Model and temperature are set in config.json (llm, agents.<name>)
+name: medical_billing_agent
+role_description: Reads medical and billing documents, checks procedure/diagnosis
+  coding integrity (CPT / ICD-10), and flags billing mismatches or unbundling.
+system_prompt: 'You are a Certified Professional Medical Auditor and Coding Specialist.
+
+  Your job is to cross-reference CPT billing codes against ICD-10 diagnostic codes,
+  calculate allowed fee schedule amounts, and flag coding mismatches, duplicate billings,
+  or unbundled charges.
+
+  '
 task_prompts:
-  billing_audit: |
-    Diagnoses: ${diagnosis_codes}
+  billing_audit: 'Diagnoses: ${diagnosis_codes}
+
     Procedures: ${procedure_codes}
+
     Claimed Amount: ${claimed_amount}
 
+
     Audit medical billing consistency and identify any procedure code mismatches.
+
+    '
 allowed_tools:
-  - "validate_cpt_icd_compatibility"
-  - "calculate_fee_schedule_allowed"
-  - "detect_unbundling_or_duplicate"
-input_schema: "MedicalBillingInputState"
-output_schema: "MedicalBillingOutputState"
+- validate_cpt_icd_compatibility
+- calculate_fee_schedule_allowed
+- detect_unbundling_or_duplicate
+input_schema: MedicalBillingInputState
+output_schema: MedicalBillingOutputState
 retry_config:
   max_retries: 3
   timeout_seconds: 15
 few_shot_examples:
-  - input:
-      diagnosis_codes: ["S39.011A"]
-      procedure_codes: ["93000"]
-    output:
-      code_mismatches: ["Routine lumbar strain does not justify ECG 93000 without cardiac indication."]
+- input:
+    diagnosis_codes:
+    - S39.011A
+    procedure_codes:
+    - '93000'
+  output:
+    code_mismatches:
+    - Routine lumbar strain does not justify ECG 93000 without cardiac indication.

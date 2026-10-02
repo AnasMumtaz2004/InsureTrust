@@ -73,5 +73,10 @@ class ClaimAdjudicationState(TypedDict, total=False):
     # System Graph Tracking
     status: str
     error: Optional[str]
-    human_approval_action: Optional[str]
+
+    # Human review input fields (set by ClaimService.resume_human_review)
+    human_approval_action: Optional[str]      # "APPROVE" | "OVERRIDE" | "SEND_BACK"
     human_adjudicator_notes: Optional[str]
+    human_modified_payout: Optional[float]    # override payout (>= 0)
+    human_decision_type: Optional[str]        # override decision type if different from draft
+    human_actor_id: Optional[str]             # user id of the adjudicator

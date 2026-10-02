@@ -37,15 +37,21 @@ def reconcile_node(state: Dict[str, Any]) -> Dict[str, Any]:
     pro_args = state.get("pro_arguments", [])
     con_args = state.get("con_arguments", [])
     mismatches = state.get("code_mismatches", [])
+    exclusions = state.get("exclusion_triggers", [])
+    unusual = state.get("unusual_charges", [])
+    coverage_status = str(state.get("coverage_status", "")).upper()
 
     pro_score = evaluate_argument_strength.invoke({"arguments": pro_args, "evidence_count": len(state.get("policy_clauses", []))})
     con_score = evaluate_argument_strength.invoke({"arguments": con_args, "evidence_count": len(mismatches)})
 
-    if mismatches:
+    if coverage_status == "EXCLUDED" or exclusions:
+        recommendation = "DENY"
+        resolution = "Resolved via debate: Policy exclusion language outweighs the approval case. Recommend DENY."
+    elif mismatches or unusual:
         recommendation = "PARTIAL_APPROVE" if pro_score > con_score else "DENY"
-        resolution = f"Resolved via debate: Code mismatches detected ({len(mismatches)}). Recommend {recommendation} with itemized fee schedule restrictions."
+        resolution = f"Resolved via debate: Code mismatches or unusual charges detected ({len(mismatches) + len(unusual)}). Recommend {recommendation} with itemized fee schedule restrictions."
     else:
-        recommendation = "APPROVE"
+        recommendation = "APPROVE" if pro_score >= con_score else "DENY"
         resolution = "Resolved via debate: Pro-approval evidence outweighs denial factors. Recommend APPROVE."
 
     transcript = summarize_debate_transcript.invoke({

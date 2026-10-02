@@ -1,6 +1,6 @@
 import { Bell } from 'lucide-react';
 import { IconButton, Avatar } from '../shared';
-import { useAuth } from '../../auth/AuthContext';
+import { useAuth } from '../../auth/useAuth';
 
 const MobileHeader = () => {
   const { user } = useAuth();

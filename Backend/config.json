@@ -1,0 +1,17 @@
+{
+  "project_name": "Claims Adjudication Platform",
+  "env": "development",
+  "log_level": "INFO",
+  "auth": {"algorithm": "HS256", "access_token_expire_minutes": 60},
+  "cors_origins": ["http://localhost:5173"],
+  "llm": {"provider": "groq", "model": "llama-3.3-70b-versatile", "temperature": 0.2, "max_tokens": 1024, "timeout_seconds": 30},
+  "agents": {},
+  "embeddings": {"provider": "huggingface", "model": "sentence-transformers/all-MiniLM-L6-v2", "device": "cpu"},
+  "reranker": {"model": "cross-encoder/ms-marco-MiniLM-L-6-v2"},
+  "vectorstore": {"policy_path": "data/vectorstores/policy_store", "precedent_path": "data/vectorstores/precedent_store"},
+  "business_rules": {"auto_approval_max_amount": 5000.0, "high_complexity_score_threshold": 7.0},
+  "billing": {"default_fee": 150.0, "no_code_allowed_ratio": 0.8, "fee_schedule": {"99214": 180.0, "93000": 75.0, "72148": 850.0, "97110": 65.0}},
+  "severity": {"base": 1.0, "amount_high": 10000, "amount_high_points": 4.0, "amount_mid": 3000, "amount_mid_points": 2.0, "per_diagnosis": 0.8, "diagnosis_cap": 3.0, "per_procedure": 0.7, "procedure_cap": 3.0},
+  "debate": {"base": 0.40, "per_argument": 0.15, "per_evidence": 0.10, "cap": 0.95},
+  "uploads": {"dir": "data/uploads", "max_mb": 10, "allowed_types": ["application/pdf", "image/jpeg", "image/png"]}
+}

@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import Logo from '../assets/Logo';
 import { Button, Card } from '../components/shared';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../auth/useAuth';
 
 const UserLoginPage = () => {
   const [email, setEmail] = useState('');

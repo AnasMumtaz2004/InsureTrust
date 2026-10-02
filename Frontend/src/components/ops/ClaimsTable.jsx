@@ -12,7 +12,8 @@ const ClaimsTable = ({ claims = [], loading = false, onSelectClaim }) => {
       const claimLabel = `${claim.claim_number || ''} ${claim.policy_number || ''}`.toLowerCase();
       const matchSearch = claimLabel.includes(search.toLowerCase()) || (claim.claim_id || claim.id || '').toLowerCase().includes(search.toLowerCase());
       const matchType = filterType === 'all' || (claim.product_line || claim.type || '').toLowerCase() === filterType;
-      const matchStatus = filterStatus === 'all' || (claim.status || '').toLowerCase() === filterStatus.toLowerCase();
+      const normalizedStatus = (claim.status || '').toLowerCase().replace(/_/g, '-');
+      const matchStatus = filterStatus === 'all' || normalizedStatus === filterStatus;
       return matchSearch && matchType && matchStatus;
     });
   }, [claims, filterStatus, filterType, search]);
@@ -51,9 +52,14 @@ const ClaimsTable = ({ claims = [], loading = false, onSelectClaim }) => {
             className="appearance-none pl-3 pr-8 py-2 border border-border rounded-md text-sm bg-white focus:outline-none focus:border-accent cursor-pointer"
           >
             <option value="all">All Status</option>
-            <option value="in_review">In Review</option>
-            <option value="pending_approval">Pending Approval</option>
+            <option value="in-review">In Review</option>
+            <option value="pending-approval">Pending Approval</option>
             <option value="approved">Approved</option>
+            <option value="partial-approved">Partial Approved</option>
+            <option value="denied">Denied</option>
+            <option value="overridden">Overridden</option>
+            <option value="sent-back">Sent Back</option>
+            <option value="processing-failed">Processing Failed</option>
           </select>
           <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary pointer-events-none" />
         </div>
@@ -88,7 +94,7 @@ const ClaimsTable = ({ claims = [], loading = false, onSelectClaim }) => {
               >
                 <td className="px-4 py-3 font-medium text-accent">{claim.claim_number || claim.claim_id || claim.id}</td>
                 <td className="px-4 py-3 text-primary">{claim.policy_number}</td>
-                <td className="px-4 py-3"><StatusChip status={(claim.status || '').toLowerCase().replace(/ /g, '-')} /></td>
+                <td className="px-4 py-3"><StatusChip status={(claim.status || '').toLowerCase().replace(/_/g, '-')} /></td>
                 <td className="px-4 py-3 text-primary">${(claim.total_claimed_amount || 0).toLocaleString()}</td>
                 <td className="px-4 py-3 text-secondary">{claim.created_at ? new Date(claim.created_at).toLocaleDateString() : '—'}</td>
               </tr>

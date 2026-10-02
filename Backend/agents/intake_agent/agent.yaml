@@ -1,31 +1,43 @@
-name: "intake_agent"
-role_description: "Classifies claim complexity (simple vs complex), checks document completeness, and computes initial claim severity index."
-llm_model: "gpt-4o"
-temperature: 0.1
-system_prompt: |
-  You are an expert Insurance Intake & Classification Agent.
-  Your objective is to inspect incoming claim submissions for completeness, calculate a numerical complexity score (1.0 - 10.0), and determine whether the claim requires high-complexity multi-agent debate or fast-track processing.
+# Model and temperature are set in config.json (llm, agents.<name>)
+name: intake_agent
+role_description: Classifies claim complexity (simple vs complex), checks document
+  completeness, and computes initial claim severity index.
+system_prompt: 'You are an expert Insurance Intake & Classification Agent.
+
+  Your objective is to inspect incoming claim submissions for completeness, calculate
+  a numerical complexity score (1.0 - 10.0), and determine whether the claim requires
+  high-complexity multi-agent debate or fast-track processing.
+
+  '
 task_prompts:
-  classification_prompt: |
-    Analyze the following claim details:
+  classification_prompt: 'Analyze the following claim details:
+
     Claim Amount: ${claimed_amount}
+
     Diagnosis Codes: ${diagnosis_codes}
+
     Procedure Codes: ${procedure_codes}
+
     Description: ${description}
 
-    Evaluate complexity based on monetary value, multi-code severity, and missing documentation.
+
+    Evaluate complexity based on monetary value, multi-code severity, and missing
+    documentation.
+
+    '
 allowed_tools:
-  - "validate_claim_fields"
-  - "calculate_severity_score"
-input_schema: "IntakeInputState"
-output_schema: "IntakeOutputState"
+- validate_claim_fields
+- calculate_severity_score
+input_schema: IntakeInputState
+output_schema: IntakeOutputState
 retry_config:
   max_retries: 3
   timeout_seconds: 15
 few_shot_examples:
-  - input:
-      claimed_amount: 450.00
-      diagnosis_codes: ["M54.5"]
-    output:
-      complexity_score: 2.5
-      is_simple: true
+- input:
+    claimed_amount: 450.0
+    diagnosis_codes:
+    - M54.5
+  output:
+    complexity_score: 2.5
+    is_simple: true

@@ -11,11 +11,36 @@ def retrieve_policy_clauses(query: str, product_line: str = "HEALTH", top_k: int
 
 @tool
 def check_exclusion_triggers(clauses: List[Dict[str, Any]], diagnosis_codes: List[str]) -> List[str]:
-    """Inspects retrieved policy clauses against diagnosis codes to identify exclusion triggers."""
+    """Inspects clause language and diagnosis data to identify exclusion triggers."""
     exclusions = []
+    exclusion_keywords = (
+        "pre-existing",
+        "preexisting",
+        "waiting period",
+        "excluded",
+        "exclusion",
+        "not covered",
+        "no coverage",
+        "not eligible",
+        "specific exclusion",
+        "not payable",
+    )
+    diagnosis_tokens = [str(code).lower() for code in diagnosis_codes if code]
+
     for clause in clauses:
-        title = clause.get("clause_title", "").lower()
-        content = clause.get("content", "").lower()
-        if "pre-existing" in title or "exclusion" in title:
-            exclusions.append(f"Potential exclusion under '{clause.get('clause_title')}': Pre-existing condition verification required.")
+        title = str(clause.get("clause_title", "")).lower()
+        content = str(clause.get("content", "")).lower()
+        combined = f"{title} {content}".strip()
+        if not combined or not diagnosis_tokens:
+            continue
+
+        keyword_match = any(keyword in combined for keyword in exclusion_keywords)
+        diagnosis_match = any(code in combined for code in diagnosis_tokens)
+
+        if keyword_match and diagnosis_match:
+            exclusions.append(
+                f"Potential exclusion under '{clause.get('clause_title', 'Policy clause')}': "
+                "Pre-existing condition or exclusion language requires verification."
+            )
+
     return exclusions

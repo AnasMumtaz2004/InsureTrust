@@ -15,6 +15,16 @@ async function request(path, { method = 'GET', body, token, headers = {} } = {})
   }
 
   const response = await fetch(`${API_BASE}${path}`, options);
+  
+  if (response.status === 401 && token) {
+    localStorage.removeItem('insuretrust_token');
+    if (window.location.pathname.startsWith('/ops')) {
+      window.location.assign('/staff-login');
+    } else {
+      window.location.assign('/login');
+    }
+  }
+
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -33,7 +43,7 @@ export function loginStaff(email, password) {
 }
 
 export function getClaims(token, limit = 50) {
-  return request('/claims', { method: 'GET', token, headers: { 'X-Limit': limit } });
+  return request(`/claims?limit=${limit}`, { method: 'GET', token });
 }
 
 export function getClaimById(claimId, token) {

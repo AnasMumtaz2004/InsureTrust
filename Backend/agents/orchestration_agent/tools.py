@@ -15,15 +15,20 @@ def evaluate_claim_complexity(claimed_amount: float, severity_score: float) -> D
     }
 
 @tool
-def detect_conflict(coverage_status: str, code_mismatches: List[str], exclusion_triggers: List[str]) -> List[str]:
+def detect_conflict(
+    coverage_status: str,
+    code_mismatches: List[str],
+    exclusion_triggers: List[str] | None = None,
+    unusual_charges: List[str] | None = None,
+) -> List[str]:
     """Detects conflicts between policy coverage status and medical/billing findings."""
     conflicts = []
-    if coverage_status == "EXCLUDED":
+    if str(coverage_status).upper() == "EXCLUDED":
         conflicts.append("Policy interpretation flagged EXCLUDED coverage status.")
     if code_mismatches:
         conflicts.extend([f"Medical billing code mismatch: {m}" for m in code_mismatches])
-    if exclusion_triggers:
-        conflicts.extend([f"Policy exclusion trigger: {e}" for e in exclusion_triggers])
+    if unusual_charges:
+        conflicts.extend([f"Unusual charge pattern: {u}" for u in unusual_charges])
     return conflicts
 
 @tool

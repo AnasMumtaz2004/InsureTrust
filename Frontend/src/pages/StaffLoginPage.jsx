@@ -3,10 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, CircleCheck } from 'lucide-react';
 import Logo from '../assets/Logo';
 import { Button, Card } from '../components/shared';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../auth/useAuth';
 
 const StaffLoginPage = () => {
-  const [org, setOrg] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,14 +18,14 @@ const StaffLoginPage = () => {
     e.preventDefault();
     setError('');
 
-    if (!org || !email || !password) {
+    if (!email || !password) {
       setError('Please fill in all fields.');
       return;
     }
 
     try {
       setLoading(true);
-      await login('staff', { email, password, org_id: org });
+      await login('staff', { email, password });
       navigate('/ops/queue');
     } catch (err) {
       setError(err.message || 'Unable to sign in right now.');
@@ -59,17 +58,6 @@ const StaffLoginPage = () => {
                 {error}
               </div>
             )}
-
-            <div>
-              <label className="block text-sm font-medium text-primary mb-1.5">Organization / Workspace</label>
-              <input
-                type="text"
-                value={org}
-                onChange={(e) => setOrg(e.target.value)}
-                placeholder="Enter organization name"
-                className="w-full px-4 py-2.5 border border-border rounded-md text-sm bg-white focus:outline-none focus:border-accent"
-              />
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-primary mb-1.5">Staff Email</label>

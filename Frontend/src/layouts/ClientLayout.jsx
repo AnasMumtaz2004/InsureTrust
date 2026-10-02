@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { ClientSidebar, MobileTabBar, MobileHeader } from '../components/client';
 import { IconButton, Avatar } from '../components/shared';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../auth/useAuth';
 
 const ClientLayout = () => {
   const { user } = useAuth();

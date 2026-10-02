@@ -14,32 +14,106 @@ from agents.debate_agent.graph import debate_agent_subgraph
 from agents.decision_drafting_agent.graph import decision_drafting_node
 from agents.compliance_guardrail_agent.graph import compliance_guardrail_node
 
+
 def human_review_interrupt_node(state: ClaimAdjudicationState) -> Dict[str, Any]:
-    """Node representing human-in-the-loop pause point for adjudicator approval/override."""
-    action = state.get("human_approval_action")
+    """Node representing human-in-the-loop pause point for adjudicator approval/override.
+
+    Actions:
+      APPROVE   – keep the draft decision and payout; mark human_overridden=False.
+      OVERRIDE  – set human_overridden=True; use human_modified_payout / human_decision_type
+                  if provided, otherwise keep the draft values.
+      SEND_BACK – terminal; status=SENT_BACK, no payout change, decision kept as draft
+                  with sent_back=True.
+    """
+    action = state.get("human_approval_action", "")
+    actor_id = state.get("human_actor_id", "ADJUDICATOR_HUMAN")
+    notes = state.get("human_adjudicator_notes", "")
+
+    # Base final decision from compliance agent (which copied it from draft)
+    base_final = dict(state.get("final_decision") or state.get("draft_decision") or {})
+    draft_approved_amount = float(state.get("approved_amount", 0.0))
+
     if action == "APPROVE":
-        final_dec = dict(state.get("final_decision", {}))
+        final_dec = dict(base_final)
+        if state.get("human_decision_type"):
+            final_dec["decision_type"] = state["human_decision_type"]
+        else:
+            final_dec["decision_type"] = "APPROVE"
         final_dec["human_overridden"] = False
-        final_dec["approved_by"] = "ADJUDICATOR_HUMAN"
-        return {"final_decision": final_dec, "status": "APPROVED", "last_completed_agent": "human_review_interrupt"}
+        final_dec["approved_by"] = actor_id
+        approved_amount = draft_approved_amount
+        return {
+            "final_decision": final_dec,
+            "approved_amount": approved_amount,
+            "status": "APPROVED",
+            "last_completed_agent": "human_review_interrupt",
+        }
+
     elif action == "OVERRIDE":
-        final_dec = dict(state.get("final_decision", {}))
+        final_dec = dict(base_final)
         final_dec["human_overridden"] = True
-        final_dec["override_reason"] = state.get("human_adjudicator_notes", "Overridden by human adjudicator.")
-        final_dec["decision_type"] = "APPROVE"
-        return {"final_decision": final_dec, "status": "OVERRIDDEN", "last_completed_agent": "human_review_interrupt"}
+        final_dec["override_reason"] = notes
+        final_dec["approved_by"] = actor_id
+
+        # Apply human-specified decision type if provided
+        human_dtype = state.get("human_decision_type")
+        if human_dtype:
+            final_dec["decision_type"] = human_dtype
+        elif final_dec.get("decision_type") is None:
+            final_dec["decision_type"] = "APPROVE"
+
+        # Apply modified payout; DENY -> 0
+        modified_payout = state.get("human_modified_payout")
+        if modified_payout is not None:
+            approved_amount = float(modified_payout)
+        elif final_dec.get("decision_type") == "DENY":
+            approved_amount = 0.0
+        else:
+            approved_amount = draft_approved_amount
+
+        final_dec["approved_amount"] = approved_amount
+
+        return {
+            "final_decision": final_dec,
+            "approved_amount": approved_amount,
+            "status": "OVERRIDDEN",
+            "last_completed_agent": "human_review_interrupt",
+        }
+
+    elif action == "SEND_BACK":
+        final_dec = dict(base_final)
+        final_dec["sent_back"] = True
+        final_dec["sent_back_reason"] = notes
+        return {
+            "final_decision": final_dec,
+            "approved_amount": draft_approved_amount,
+            "status": "SENT_BACK",
+            "last_completed_agent": "human_review_interrupt",
+        }
+
     else:
+        # Should not reach here due to schema validation, but safe fallback
         return {"status": "PAUSED_FOR_HUMAN_REVIEW"}
+
 
 def finalize_decision_node(state: ClaimAdjudicationState) -> Dict[str, Any]:
     """Final node completing the claims graph execution."""
     final_dec = state.get("final_decision") or state.get("draft_decision") or {}
     logger.info(f"Finalizing claim {state.get('claim_id')} with decision: {final_dec.get('decision_type', 'PENDING')}")
+
+    # SENT_BACK stays as-is; all other decisions get COMPLETED_ prefix
+    current_status = state.get("status", "")
+    if current_status == "SENT_BACK":
+        terminal_status = "SENT_BACK"
+    else:
+        terminal_status = f"COMPLETED_{final_dec.get('decision_type', 'APPROVED')}"
+
     return {
-        "status": f"COMPLETED_{final_dec.get('decision_type', 'APPROVED')}",
+        "status": terminal_status,
         "final_decision": final_dec,
         "last_completed_agent": "finalize_decision"
     }
+
 
 def create_claims_adjudication_graph():
     """Thin composition file wiring all 8 subgraphs. All routing decisions are delegated to Orchestration Agent."""

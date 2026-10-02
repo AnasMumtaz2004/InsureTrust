@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Clock, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { KpiCard, Card, Tabs } from '../components/shared';
 import { ClaimsTable, AdjustersList } from '../components/ops';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../auth/useAuth';
 import { getOpsAnalytics, getAuditLogs, getOpsClaims } from '../api/clientApi';
 
 const queueTabs = [
@@ -52,7 +52,7 @@ const OpsQueuePage = () => {
       {/* KPI Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard title="Pending Settlements" value={loading ? '…' : analytics?.pending_human_review ?? 0} icon={Clock} />
-        <KpiCard title="Avg Processing Time" value={loading ? '…' : `${analytics?.average_processing_time_seconds ?? 0} sec`} icon={TrendingUp} />
+        <KpiCard title="Avg Processing Time" value={loading ? '…' : analytics?.average_processing_time_seconds == null ? '—' : `${analytics.average_processing_time_seconds} sec`} icon={TrendingUp} />
         <KpiCard title="Override Rate" value={loading ? '…' : `${((analytics?.human_override_rate ?? 0) * 100).toFixed(1)}%`} icon={AlertTriangle} />
         <KpiCard title="Approval Rate" value={loading ? '…' : `${((analytics?.automated_approval_rate ?? 0) * 100).toFixed(1)}%`} icon={CheckCircle} />
       </div>

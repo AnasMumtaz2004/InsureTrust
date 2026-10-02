@@ -3,7 +3,7 @@ import {
   LayoutDashboard, MessageSquare, LogOut
 } from 'lucide-react';
 import Logo from '../../assets/Logo';
-import { useAuth } from '../../auth/AuthContext';
+import { useAuth } from '../../auth/useAuth';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },

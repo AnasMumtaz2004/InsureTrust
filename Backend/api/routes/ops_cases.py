@@ -2,17 +2,27 @@ from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database.database import get_db
-from database.models import Claim, DebateTranscript, AuditLog
+from database.models import Claim, DebateTranscript, AuditLog, User
+from database.enums import ClaimStatus, Role
 from schemas.ops import CaseQueueItemResponse
 from graph.main_graph import claims_graph
+from api.deps import require_role
 
 router = APIRouter(prefix="/ops/cases", tags=["Back-Office Operations Queue"])
 
 @router.get("/queue", response_model=List[CaseQueueItemResponse])
-def get_operations_queue(db: Session = Depends(get_db)):
+def get_operations_queue(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(Role.STAFF, Role.ADMIN))
+):
     """Returns back-office queue of cases requiring human review or oversight."""
     pending_claims = db.query(Claim).filter(
-        Claim.status.in_(["PENDING_APPROVAL", "PAUSED_FOR_HUMAN_REVIEW", "IN_REVIEW", "DEBATING"])
+        Claim.status.in_([
+            ClaimStatus.PENDING_APPROVAL.value,
+            ClaimStatus.IN_REVIEW.value,
+            ClaimStatus.SENT_BACK.value,
+            ClaimStatus.PROCESSING_FAILED.value,
+        ])
     ).order_by(Claim.created_at.desc()).all()
 
     items = []
@@ -32,7 +42,11 @@ def get_operations_queue(db: Session = Depends(get_db)):
     return items
 
 @router.get("/{claim_id}/graph-state")
-def inspect_claim_graph_state(claim_id: str, db: Session = Depends(get_db)):
+def inspect_claim_graph_state(
+    claim_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(Role.STAFF, Role.ADMIN))
+):
     """Inspects full live LangGraph execution state for debugging and auditing."""
     thread_config = {"configurable": {"thread_id": claim_id}}
     state_snapshot = claims_graph.get_state(thread_config)
@@ -47,7 +61,11 @@ def inspect_claim_graph_state(claim_id: str, db: Session = Depends(get_db)):
     }
 
 @router.get("/{claim_id}/debate-transcript")
-def get_debate_transcript(claim_id: str, db: Session = Depends(get_db)):
+def get_debate_transcript(
+    claim_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(Role.STAFF, Role.ADMIN))
+):
     """Retrieves structured pro/con debate transcript for cases that triggered the Debate Agent."""
     transcript = db.query(DebateTranscript).filter(DebateTranscript.claim_id == claim_id).first()
     if not transcript:
@@ -68,7 +86,11 @@ def get_debate_transcript(claim_id: str, db: Session = Depends(get_db)):
     }
 
 @router.get("/{claim_id}/audit-trail")
-def get_claim_audit_trail(claim_id: str, db: Session = Depends(get_db)):
+def get_claim_audit_trail(
+    claim_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(Role.STAFF, Role.ADMIN))
+):
     """Retrieves step-by-step immutable audit log trail for a claim."""
     logs = db.query(AuditLog).filter(AuditLog.claim_id == claim_id).order_by(AuditLog.timestamp.asc()).all()
     return logs

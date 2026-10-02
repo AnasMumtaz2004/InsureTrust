@@ -1,35 +1,38 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from database.database import get_db
-from database.models import Claim, ChatMessage
+from database.models import Claim, ChatMessage, User
+from database.enums import Role
 from schemas.claims import ClaimSubmissionRequest, ClaimResponse, ClaimDetailResponse
 from services.claim_service import ClaimService
 from graph.main_graph import claims_graph
 from config import settings
+from api.deps import get_current_user, assert_claim_access
 
 try:
     from langchain_core.messages import HumanMessage
-    from langchain_groq import ChatGroq
 except ImportError:
     HumanMessage = None
-    ChatGroq = None
 
 router = APIRouter(prefix="/claims", tags=["Claims Adjudication"])
 
-
-def _build_groq_llm():
-    if ChatGroq is None or HumanMessage is None:
-        raise RuntimeError("Groq integration is unavailable")
-    if not settings.GROQ_API_KEY:
-        raise RuntimeError("GROQ_API_KEY is not configured")
-    return ChatGroq(model="llama-3.1-8b-instant", groq_api_key=settings.GROQ_API_KEY, temperature=0.2)
-
 @router.post("/submit", response_model=ClaimResponse, status_code=status.HTTP_201_CREATED)
-def submit_claim(req: ClaimSubmissionRequest, db: Session = Depends(get_db)):
+def submit_claim(
+    req: ClaimSubmissionRequest, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Submits an incoming insurance claim and triggers the multi-agent graph execution."""
+    req_dict = req.dict()
+    
+    if current_user.role == Role.CUSTOMER.value:
+        req_dict["claimant_id"] = current_user.id
+    elif not req_dict.get("claimant_id"):
+        req_dict["claimant_id"] = current_user.id
+
     service = ClaimService(db)
-    result = service.submit_and_process_claim(req.dict())
+    result = service.submit_and_process_claim(req_dict)
 
     db_claim = db.query(Claim).filter(Claim.id == result["claim_id"]).first()
     if not db_claim:
@@ -37,25 +40,48 @@ def submit_claim(req: ClaimSubmissionRequest, db: Session = Depends(get_db)):
     return db_claim
 
 @router.get("", response_model=List[ClaimResponse])
-def list_claims(limit: int = 50, db: Session = Depends(get_db)):
+def list_claims(
+    limit: int = Query(50, ge=1, le=200), 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Lists submitted claims."""
-    claims = db.query(Claim).order_by(Claim.created_at.desc()).limit(limit).all()
+    query = db.query(Claim)
+    if current_user.role == Role.CUSTOMER.value:
+        query = query.filter(Claim.claimant_id == current_user.id)
+    
+    claims = query.order_by(Claim.created_at.desc()).limit(limit).all()
     return claims
 
 
 @router.post("/{claim_id}/chat")
-def claim_chat(claim_id: str, payload: dict, db: Session = Depends(get_db)):
+def claim_chat(
+    claim_id: str, 
+    payload: dict, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     claim = db.query(Claim).filter(Claim.id == claim_id).first()
     if not claim:
         raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found.")
+        
+    assert_claim_access(current_user, claim)
 
     message = payload.get("message", "") or ""
     if not message:
         raise HTTPException(status_code=400, detail="A message is required.")
 
+    import uuid
+    user_msg_id = f"MSG-{uuid.uuid4().hex[:8].upper()}"
+    db.add(ChatMessage(id=user_msg_id, claim_id=claim_id, role="user", content=message))
+    db.commit()
+
     try:
-        llm = _build_groq_llm()
-    except RuntimeError:
+        from services.llm_service import get_chat_llm
+        llm = get_chat_llm()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Failed to load llm: {e}")
         answer = "I can help summarize your claim and explain next steps. Please ask a specific question about coverage, status, or required documents."
     else:
         prompt = (
@@ -65,20 +91,31 @@ def claim_chat(claim_id: str, payload: dict, db: Session = Depends(get_db)):
             f"Answer the user's message clearly and briefly. "
             f"User message: {message}"
         )
-        answer = llm.invoke([HumanMessage(content=prompt)]).content
+        try:
+            answer = llm.invoke([HumanMessage(content=prompt)]).content
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to invoke llm: {e}")
+            answer = "I can help summarize your claim and explain next steps. Please ask a specific question about coverage, status, or required documents."
 
-    db.add(ChatMessage(claim_id=claim_id, role="user", content=message))
-    db.add(ChatMessage(claim_id=claim_id, role="assistant", content=answer))
+    ast_msg_id = f"MSG-{uuid.uuid4().hex[:8].upper()}"
+    db.add(ChatMessage(id=ast_msg_id, claim_id=claim_id, role="assistant", content=answer))
     db.commit()
 
     return {"reply": answer}
 
 @router.get("/{claim_id}", response_model=ClaimDetailResponse)
-def get_claim_details(claim_id: str, db: Session = Depends(get_db)):
+def get_claim_details(
+    claim_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Retrieves full claim details including complete LangGraph snapshot state."""
     db_claim = db.query(Claim).filter(Claim.id == claim_id).first()
     if not db_claim:
         raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found.")
+        
+    assert_claim_access(current_user, db_claim)
 
     # Retrieve LangGraph thread state
     thread_config = {"configurable": {"thread_id": claim_id}}

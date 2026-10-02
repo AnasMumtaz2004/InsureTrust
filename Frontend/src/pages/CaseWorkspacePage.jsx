@@ -4,7 +4,7 @@ import { ArrowLeft, User, Calendar, DollarSign, FileText } from 'lucide-react';
 import { Card, Tabs, Timeline, StatusChip } from '../components/shared';
 import { ReasoningPanel, DebatePanel, DecisionActionBar } from '../components/ops';
 import { RecommendationCard } from '../components/client';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../auth/useAuth';
 import { getClaimById } from '../api/clientApi';
 
 const rightPanelTabs = [
@@ -67,7 +67,7 @@ const CaseWorkspacePage = () => {
   ];
 
   const recommendationFeatures = [
-    claim.final_decision ? `Decision: ${claim.final_decision}` : 'Decision is still being prepared',
+    claim.final_decision ? `Decision: ${claim.final_decision?.decision_type} - ${claim.final_decision?.rationale}` : 'Decision is still being prepared',
     `Policy clauses reviewed: ${claim.policy_clauses?.length || 0}`,
     `Compliance flags: ${claim.compliance_flags?.length || 0}`,
     `Citations found: ${claim.citations?.length || 0}`,

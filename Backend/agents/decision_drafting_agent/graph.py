@@ -30,12 +30,18 @@ def decision_drafting_node(state: Dict[str, Any]) -> Dict[str, Any]:
         "precedent_cases": state.get("precedent_cases", [])
     })
 
+    appeal_notice = (
+        " You have the right to request an internal appeal and provide supporting documentation."
+    )
+
     rationale = (
         f"Based on automated multi-agent analysis for Claim {claim_id}: "
         f"The claim has been assigned a status of {decision_type}. "
         f"Approved payout: ${payout_info['approved_payout']}. "
         f"Key resolution notes: {state.get('conflict_resolution', 'Standard policy interpretation applied.')}"
     )
+    if decision_type in {"DENY", "PARTIAL_APPROVE"}:
+        rationale += appeal_notice
 
     draft = {
         "claim_id": claim_id,

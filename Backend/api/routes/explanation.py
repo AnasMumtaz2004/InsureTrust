@@ -1,35 +1,31 @@
-import os
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database.database import get_db
-from database.models import Claim, ChatMessage
+from database.models import Claim, ChatMessage, User
 from schemas.ops import ExplanationResponse, QAChatRequest, QAChatResponse
 from graph.main_graph import claims_graph
 from config import settings
+from api.deps import get_current_user, assert_claim_access
 
 try:
     from langchain_core.messages import HumanMessage
-    from langchain_groq import ChatGroq
 except ImportError:
     HumanMessage = None
-    ChatGroq = None
 
 router = APIRouter(prefix="/explanation", tags=["Claimant Explanation & Q&A"])
 
-
-def _build_groq_llm():
-    if ChatGroq is None or HumanMessage is None:
-        raise RuntimeError("Groq integration is unavailable")
-    if not settings.GROQ_API_KEY:
-        raise RuntimeError("GROQ_API_KEY is not configured")
-    return ChatGroq(model="llama-3.1-8b-instant", groq_api_key=settings.GROQ_API_KEY, temperature=0.2)
-
 @router.get("/{claim_id}", response_model=ExplanationResponse)
-def get_claimant_explanation(claim_id: str, db: Session = Depends(get_db)):
+def get_claimant_explanation(
+    claim_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Provides a claimant-friendly explanation of the adjudication decision."""
     db_claim = db.query(Claim).filter(Claim.id == claim_id).first()
     if not db_claim:
         raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found.")
+        
+    assert_claim_access(current_user, db_claim)
 
     thread_config = {"configurable": {"thread_id": claim_id}}
     state = claims_graph.get_state(thread_config).values or {}
@@ -59,15 +55,29 @@ def get_claimant_explanation(claim_id: str, db: Session = Depends(get_db)):
     )
 
 @router.post("/chat", response_model=QAChatResponse)
-def ask_explanation_question(req: QAChatRequest, db: Session = Depends(get_db)):
+def ask_explanation_question(
+    req: QAChatRequest, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Interactive Q&A chat endpoint answering claimant questions about their specific decision."""
     db_claim = db.query(Claim).filter(Claim.id == req.claim_id).first()
     if not db_claim:
         raise HTTPException(status_code=404, detail=f"Claim {req.claim_id} not found.")
+        
+    assert_claim_access(current_user, db_claim)
+
+    import uuid
+    user_msg_id = f"MSG-{uuid.uuid4().hex[:8].upper()}"
+    db.add(ChatMessage(id=user_msg_id, claim_id=req.claim_id, role="user", content=req.user_question))
+    db.commit()
 
     try:
-        llm = _build_groq_llm()
-    except RuntimeError:
+        from services.llm_service import get_chat_llm
+        llm = get_chat_llm()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Failed to load llm: {e}")
         answer = (
             f"Your claim {db_claim.claim_number} was reviewed against policy terms and billing standards. "
             f"The current approved amount is ${db_claim.approved_amount:,.2f}."
@@ -86,10 +96,18 @@ def ask_explanation_question(req: QAChatRequest, db: Session = Depends(get_db)):
             f"Use this claim context:\n{context}\n"
             f"User question: {req.user_question}"
         )
-        answer = llm.invoke([HumanMessage(content=prompt)]).content
+        try:
+            answer = llm.invoke([HumanMessage(content=prompt)]).content
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to invoke llm: {e}")
+            answer = (
+                f"Your claim {db_claim.claim_number} was reviewed against policy terms and billing standards. "
+                f"The current approved amount is ${db_claim.approved_amount:,.2f}."
+            )
 
-    db.add(ChatMessage(claim_id=req.claim_id, role="user", content=req.user_question))
-    db.add(ChatMessage(claim_id=req.claim_id, role="assistant", content=answer))
+    ast_msg_id = f"MSG-{uuid.uuid4().hex[:8].upper()}"
+    db.add(ChatMessage(id=ast_msg_id, claim_id=req.claim_id, role="assistant", content=answer))
     db.commit()
 
     return QAChatResponse(

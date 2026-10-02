@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { OpsSidebar } from '../components/ops';
 import { Avatar } from '../components/shared';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../auth/useAuth';
 
 const OpsLayout = () => {
   const { user } = useAuth();

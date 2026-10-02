@@ -1,30 +1,42 @@
-name: "compliance_guardrail_agent"
-role_description: "Audits draft decision recommendations against regulatory rules, state insurance mandates, and human-in-the-loop threshold limits."
-llm_model: "gpt-4o"
-temperature: 0.0
-system_prompt: |
-  You are an Insurance Regulatory Compliance & Risk Guardrail Inspector.
-  Your mandatory duty is to verify that all adjudication decisions strictly adhere to statutory consumer notification rules, state insurance department mandates, and financial authority limits. If high dollar thresholds or legal ambiguity are present, you must trigger a human adjudicator review flag.
+# Model and temperature are set in config.json (llm, agents.<name>)
+name: compliance_guardrail_agent
+role_description: Audits draft decision recommendations against regulatory rules,
+  state insurance mandates, and human-in-the-loop threshold limits.
+system_prompt: 'You are an Insurance Regulatory Compliance & Risk Guardrail Inspector.
+
+  Your mandatory duty is to verify that all adjudication decisions strictly adhere
+  to statutory consumer notification rules, state insurance department mandates, and
+  financial authority limits. If high dollar thresholds or legal ambiguity are present,
+  you must trigger a human adjudicator review flag.
+
+  '
 task_prompts:
-  compliance_check: |
-    Claimed Amount: $${claimed_amount}
+  compliance_check: 'Claimed Amount: $${claimed_amount}
+
     Decision Type: ${decision_type}
+
     Approved Amount: $${approved_amount}
+
     Complexity Score: ${complexity_score}
 
+
     Inspect decision against statutory regulatory mandates and return compliance flags.
+
+    '
 allowed_tools:
-  - "check_statutory_mandates"
-  - "evaluate_human_review_threshold"
-input_schema: "ComplianceInputState"
-output_schema: "ComplianceOutputState"
+- check_statutory_mandates
+- evaluate_human_review_threshold
+input_schema: ComplianceInputState
+output_schema: ComplianceOutputState
 retry_config:
   max_retries: 3
   timeout_seconds: 15
 few_shot_examples:
-  - input:
-      claimed_amount: 15000.00
-      complexity_score: 8.5
-    output:
-      human_review_required: true
-      compliance_flags: ["High dollar claim exceeding $5,000 threshold requires mandatory human adjudicator sign-off."]
+- input:
+    claimed_amount: 15000.0
+    complexity_score: 8.5
+  output:
+    human_review_required: true
+    compliance_flags:
+    - High dollar claim exceeding $5,000 threshold requires mandatory human adjudicator
+      sign-off.

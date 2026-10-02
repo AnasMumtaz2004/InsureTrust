@@ -4,7 +4,7 @@ from datetime import datetime
 
 class ClaimSubmissionRequest(BaseModel):
     policy_number: str = Field(..., example="POL-994821")
-    claimant_id: str = Field(..., example="USR-1002")
+    claimant_id: Optional[str] = Field(None, example="USR-1002")
     incident_date: str = Field(..., example="2026-06-15")
     claimed_amount: float = Field(..., example=3450.00)
     diagnosis_codes: List[str] = Field(default_factory=list, example=["M54.5", "S39.011A"])
