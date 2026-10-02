@@ -4,11 +4,19 @@ from sqlalchemy.orm import Session
 from database.database import get_db
 from database.models import Claim, ChatMessage, User
 from database.enums import Role
-from schemas.claims import ClaimSubmissionRequest, ClaimResponse, ClaimDetailResponse
+from schemas.claims import (
+    ClaimSubmissionRequest,
+    ClaimResponse,
+    ClaimDetailResponse,
+    ClaimIntakeChatRequest,
+    ClaimIntakeChatResponse,
+    ClaimIntakeStructuredResponse,
+)
 from services.claim_service import ClaimService
 from graph.main_graph import claims_graph
 from config import settings
-from api.deps import get_current_user, assert_claim_access
+from api.deps import get_current_user, assert_claim_access, require_role
+from utils.logger import logger
 
 try:
     from langchain_core.messages import HumanMessage
@@ -38,6 +46,54 @@ def submit_claim(
     if not db_claim:
         raise HTTPException(status_code=500, detail="Failed to persist claim submission.")
     return db_claim
+
+
+@router.post("/intake-chat", response_model=ClaimIntakeChatResponse)
+def chat_for_claim_intake(
+    req: ClaimIntakeChatRequest,
+    current_user: User = Depends(require_role(Role.CUSTOMER)),
+):
+    """Extract claim details from the customer's intake conversation."""
+    conversation = "\n".join(
+        f"{message.role}: {message.content.strip()}"
+        for message in req.conversation
+        if message.content.strip()
+    )
+    required_fields = ("policy_number", "incident_date", "claimed_amount", "description")
+    fallback_reply = "I can help gather your claim details. Please share your policy number, incident date, claimed amount, and what happened."
+
+    try:
+        from services.llm_service import get_chat_llm
+
+        llm = get_chat_llm()
+        structured_llm = llm.with_structured_output(ClaimIntakeStructuredResponse)
+        result = structured_llm.invoke(
+            "Extract only details explicitly provided in the following insurance claim intake conversation. "
+            "Do not invent values. Return a concise, friendly follow-up question in reply, especially for missing details. "
+            "Dates should use YYYY-MM-DD when possible. Diagnosis and procedure codes should be arrays.\n\n"
+            f"Conversation:\n{conversation or '(no conversation yet)'}"
+        )
+        if not isinstance(result, ClaimIntakeStructuredResponse):
+            result = ClaimIntakeStructuredResponse.model_validate(result)
+        extracted_fields = result.extracted_fields.model_dump(exclude_none=True)
+        missing_fields = [
+            field for field in required_fields
+            if extracted_fields.get(field) is None
+            or extracted_fields.get(field) == ""
+            or (field == "claimed_amount" and extracted_fields.get(field, 0) <= 0)
+        ]
+        return ClaimIntakeChatResponse(
+            reply=result.reply,
+            extracted_fields=extracted_fields,
+            missing_fields=missing_fields,
+        )
+    except Exception as exc:
+        logger.warning(f"Claim intake chat unavailable: {exc}")
+        return ClaimIntakeChatResponse(
+            reply=fallback_reply,
+            extracted_fields={},
+            missing_fields=list(required_fields),
+        )
 
 @router.get("", response_model=List[ClaimResponse])
 def list_claims(

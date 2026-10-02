@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime
 
 class ClaimSubmissionRequest(BaseModel):
@@ -35,3 +35,32 @@ class ClaimDetailResponse(ClaimResponse):
     compliance_flags: List[str] = []
     final_decision: Optional[Dict[str, Any]] = None
     citations: List[str] = []
+
+
+class ClaimIntakeMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class ClaimIntakeChatRequest(BaseModel):
+    conversation: List[ClaimIntakeMessage] = Field(default_factory=list)
+
+
+class ClaimIntakeExtractedFields(BaseModel):
+    policy_number: Optional[str] = None
+    incident_date: Optional[str] = None
+    claimed_amount: Optional[float] = None
+    description: Optional[str] = None
+    diagnosis_codes: Optional[List[str]] = None
+    procedure_codes: Optional[List[str]] = None
+
+
+class ClaimIntakeStructuredResponse(BaseModel):
+    reply: str
+    extracted_fields: ClaimIntakeExtractedFields
+
+
+class ClaimIntakeChatResponse(BaseModel):
+    reply: str
+    extracted_fields: Dict[str, Any]
+    missing_fields: List[str]

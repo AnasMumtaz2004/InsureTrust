@@ -12,6 +12,7 @@ const iconRailItems = [
 ];
 
 const AiAssistantPage = () => {
+  const [claims, setClaims] = useState([]);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [claimId, setClaimId] = useState(null);
@@ -23,11 +24,13 @@ const AiAssistantPage = () => {
     const loadDefaultClaim = async () => {
       if (!token) return;
       try {
-        const claims = await getClaims(token, 5);
-        if (claims?.length) {
-          setClaimId(claims[0].id);
-          setMessages([{ role: 'assistant', content: `I can help with claim ${claims[0].claim_number}. Ask me anything about your claim or coverage.` }]);
+        const claimList = await getClaims(token, 50);
+        setClaims(claimList || []);
+        if (claimList?.length) {
+          setClaimId(claimList[0].id);
+          setMessages([{ role: 'assistant', content: `I can help with claim ${claimList[0].claim_number}. Ask me anything about your claim or coverage.` }]);
         } else {
+          setClaimId(null);
           setMessages([{ role: 'assistant', content: 'No claims are available yet. File a claim first and then I can help explain it.' }]);
         }
       } catch (error) {
@@ -61,6 +64,15 @@ const AiAssistantPage = () => {
     }
   };
 
+  const handleClaimChange = (event) => {
+    const selectedId = event.target.value;
+    const selectedClaim = claims.find((claim) => claim.id === selectedId);
+    setClaimId(selectedId || null);
+    setMessages(selectedClaim
+      ? [{ role: 'assistant', content: `I can help with claim ${selectedClaim.claim_number}. Ask me anything about your claim or coverage.` }]
+      : []);
+  };
+
   return (
     <div className="flex h-screen bg-background">
       {/* Left icon rail — desktop only */}
@@ -82,7 +94,7 @@ const AiAssistantPage = () => {
       {/* Chat area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 md:px-6 py-4 bg-white border-b border-border">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-6 py-4 bg-white border-b border-border">
           <div className="flex items-center gap-3">
             <AiAvatar size={32} />
             <div>
@@ -90,7 +102,22 @@ const AiAssistantPage = () => {
               <p className="text-xs text-secondary hidden md:block">Powered by advanced AI agents</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {claims.length > 0 && (
+              <label className="flex items-center gap-2">
+                <span className="sr-only">Select claim</span>
+                <select
+                  aria-label="Select claim"
+                  value={claimId || ''}
+                  onChange={handleClaimChange}
+                  className="max-w-48 rounded-md border border-border bg-white px-2 py-2 text-xs text-primary focus:outline-none focus:border-accent sm:max-w-64"
+                >
+                  {claims.map((claim) => (
+                    <option key={claim.id} value={claim.id}>{claim.claim_number} · {claim.status}</option>
+                  ))}
+                </select>
+              </label>
+            )}
             <div className="w-8 h-8 rounded-full bg-primary text-white text-xs font-medium flex items-center justify-center">
               {user?.name?.[0] || 'U'}
             </div>

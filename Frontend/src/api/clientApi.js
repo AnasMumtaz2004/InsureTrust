@@ -1,5 +1,16 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1';
 
+function handleUnauthorized(response, token) {
+  if (response.status === 401 && token) {
+    localStorage.removeItem('insuretrust_token');
+    if (window.location.pathname.startsWith('/ops')) {
+      window.location.assign('/staff-login');
+    } else {
+      window.location.assign('/login');
+    }
+  }
+}
+
 async function request(path, { method = 'GET', body, token, headers = {} } = {}) {
   const options = {
     method,
@@ -15,16 +26,24 @@ async function request(path, { method = 'GET', body, token, headers = {} } = {})
   }
 
   const response = await fetch(`${API_BASE}${path}`, options);
-  
-  if (response.status === 401 && token) {
-    localStorage.removeItem('insuretrust_token');
-    if (window.location.pathname.startsWith('/ops')) {
-      window.location.assign('/staff-login');
-    } else {
-      window.location.assign('/login');
-    }
+  handleUnauthorized(response, token);
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.detail || 'Request failed');
   }
 
+  return data;
+}
+
+async function requestForm(path, formData, token) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  handleUnauthorized(response, token);
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -59,6 +78,25 @@ export function getClaimById(claimId, token) {
 
 export function submitClaim(payload, token) {
   return request('/claims/submit', { method: 'POST', body: payload, token });
+}
+
+export function uploadDocument(claimId, documentType, file, token) {
+  const formData = new FormData();
+  formData.append('claim_id', claimId);
+  formData.append('document_type', documentType);
+  formData.append('file', file);
+  return requestForm('/documents/upload', formData, token);
+}
+
+export function checkDocumentCompleteness(claimId, token) {
+  return request(`/documents/check-completeness?claim_id=${encodeURIComponent(claimId)}`, {
+    method: 'POST',
+    token,
+  });
+}
+
+export function postClaimIntakeChat(conversation, token) {
+  return request('/claims/intake-chat', { method: 'POST', body: { conversation }, token });
 }
 
 export function postClaimChat(claimId, message, token) {
