@@ -6,6 +6,7 @@ import OpsLayout from './layouts/OpsLayout';
 
 import LandingPage from './pages/LandingPage';
 import UserLoginPage from './pages/UserLoginPage';
+import SignupPage from './pages/SignupPage';
 import StaffLoginPage from './pages/StaffLoginPage';
 import DashboardPage from './pages/DashboardPage';
 import AiAssistantPage from './pages/AiAssistantPage';
@@ -23,6 +24,7 @@ function App() {
       {/* Public Only Auth Routes (redirect if already logged in) */}
       <Route element={<PublicOnlyGuard />}>
         <Route path="/login" element={<UserLoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="/staff-login" element={<StaffLoginPage />} />
       </Route>
 

@@ -63,6 +63,7 @@ const StaffLoginPage = () => {
               <label className="block text-sm font-medium text-primary mb-1.5">Staff Email</label>
               <input
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your staff email"
@@ -75,6 +76,7 @@ const StaffLoginPage = () => {
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
@@ -83,6 +85,7 @@ const StaffLoginPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={`${showPassword ? 'Hide' : 'Show'} password`}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary cursor-pointer"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}

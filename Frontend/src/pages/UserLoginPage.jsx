@@ -54,21 +54,25 @@ const UserLoginPage = () => {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-primary mb-1.5">Email or Phone</label>
+            <label htmlFor="email" className="block text-sm font-medium text-primary mb-1.5">Email</label>
             <input
-              type="text"
+              id="email"
+              type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email or phone"
+              placeholder="you@example.com"
               className="w-full px-4 py-2.5 border border-border rounded-md text-sm bg-white focus:outline-none focus:border-accent"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-primary mb-1.5">Password</label>
+            <label htmlFor="password" className="block text-sm font-medium text-primary mb-1.5">Password</label>
             <div className="relative">
               <input
+                id="password"
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
@@ -77,6 +81,7 @@ const UserLoginPage = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={`${showPassword ? 'Hide' : 'Show'} password`}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary cursor-pointer"
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -88,19 +93,14 @@ const UserLoginPage = () => {
             {loading ? 'Signing In…' : 'Sign In'}
           </Button>
 
-          <div className="text-center">
-            <button type="button" className="text-sm text-accent hover:underline cursor-pointer">
-              Sign in with OTP instead
-            </button>
-          </div>
         </form>
 
         {/* Footer link */}
         <div className="mt-6 text-center">
           <p className="text-sm text-secondary">
             New here?{' '}
-            <Link to="/" className="text-accent font-medium hover:underline">
-              Get Started
+            <Link to="/signup" className="text-accent font-medium hover:underline">
+              Create an account
             </Link>
           </p>
         </div>

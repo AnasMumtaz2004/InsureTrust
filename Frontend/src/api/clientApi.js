@@ -42,6 +42,13 @@ export function loginStaff(email, password) {
   return request('/auth/login/staff', { method: 'POST', body: { email, password } });
 }
 
+export function register(fullName, email, password) {
+  return request('/auth/register', {
+    method: 'POST',
+    body: { email, password, full_name: fullName },
+  });
+}
+
 export function getClaims(token, limit = 50) {
   return request(`/claims?limit=${limit}`, { method: 'GET', token });
 }

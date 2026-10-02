@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { Brain, ShieldCheck, Clock, Headphones, Star } from 'lucide-react';
+import { Brain, Check, Clock, Headphones, ShieldCheck } from 'lucide-react';
 import { Button } from '../components/shared';
+import { useAuth } from '../auth/useAuth';
 import ShieldIllustration from '../assets/ShieldIllustration';
 
 const features = [
@@ -10,88 +11,79 @@ const features = [
   { icon: Headphones, title: '24/7 Support', desc: "We're here for you anytime" },
 ];
 
-const insuranceCards = [
-  { name: 'Health Insurance', price: '$19', color: 'accent' },
-  { name: 'Car Insurance', price: '$29', color: 'primary' },
-  { name: 'Life Insurance', price: '$15', color: 'accent' },
+const claimSteps = [
+  { number: '01', title: 'Submit your claim', description: 'Share the claim details and supporting documents in one place.' },
+  { number: '02', title: 'AI agents review the details', description: 'Policy, billing and precedent evidence are reviewed together.' },
+  { number: '03', title: 'A human adjuster signs off', description: 'Complex and high-value cases receive human review before a decision.' },
 ];
+
+const productNames = ['Health', 'Auto', 'Life'];
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, role } = useAuth();
+
+  const handleGetStarted = () => {
+    if (isAuthenticated) {
+      navigate(role === 'customer' ? '/dashboard' : '/ops/queue');
+    } else {
+      navigate('/signup');
+    }
+  };
 
   return (
-    <div>
-      {/* Hero Section */}
+    <div className="overflow-x-clip">
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          {/* Left — Text */}
+        <div className="grid md:grid-cols-2 gap-10 lg:gap-12 items-center">
           <div>
-            <span className="eyebrow">AI-POWERED INSURANCE ASSISTANT</span>
+            <span className="eyebrow">CLAIMS, MADE CLEARER</span>
             <h1 className="mt-4 text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight">
-              <span className="text-primary">Smart Insurance.</span>
+              <span className="text-primary">Clearer claim</span>
               <br />
-              <span className="text-accent">Trusted Protection.</span>
+              <span className="text-accent">decisions.</span>
             </h1>
             <p className="mt-6 text-base md:text-lg text-secondary max-w-lg">
-              InsureTrust uses advanced AI agents to help you find the right insurance, instantly.
+              InsureTrust brings policy, billing and precedent review together so each claim has a clearer path forward.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <Button variant="secondary" size="lg" onClick={() => navigate('/login')}>
+              <Button variant="secondary" size="lg" onClick={handleGetStarted}>
                 Get Started
               </Button>
-              <Button variant="outline" size="lg" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+              >
                 Learn More
               </Button>
             </div>
 
-            {/* Trust strip */}
-            <div className="mt-10 flex items-center gap-4">
-              <div className="flex -space-x-2">
-                {['AM', 'SK', 'JD', 'RP'].map((initials, i) => (
-                  <div
-                    key={i}
-                    className="w-8 h-8 rounded-full bg-primary text-white text-xs font-medium flex items-center justify-center border-2 border-white"
-                  >
-                    {initials}
-                  </div>
+            <div className="mt-8 border-t border-border pt-5">
+              <p className="text-sm font-semibold text-primary">Built for faster, clearer claim decisions.</p>
+              <ul className="mt-3 grid gap-2 text-sm text-secondary">
+                {['AI-assisted review', 'Human sign-off on high-value claims', 'Full audit trail'].map((item) => (
+                  <li key={item} className="flex items-center gap-2">
+                    <Check size={16} className="text-accent shrink-0" aria-hidden="true" />
+                    <span>{item}</span>
+                  </li>
                 ))}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-primary">Trusted by 10,000+ users</p>
-                <div className="flex items-center gap-0.5 mt-0.5">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Star key={i} size={14} className="text-warning fill-warning" />
-                  ))}
-                </div>
-              </div>
+              </ul>
             </div>
           </div>
 
-          {/* Right — Illustration + floating cards */}
-          <div className="relative flex justify-center">
-            <ShieldIllustration className="w-64 md:w-80 lg:w-96" />
-
-            {/* Floating insurance cards */}
-            {insuranceCards.map((card, i) => (
-              <div
-                key={card.name}
-                className={`absolute bg-white border border-border rounded-lg px-4 py-3 shadow-sm ${
-                  i === 0 ? 'top-2 right-0 md:right-4' :
-                  i === 1 ? 'top-1/2 -translate-y-1/2 right-0 md:-right-4' :
-                  'bottom-8 right-4 md:right-0'
-                }`}
-              >
-                <p className="text-xs font-semibold text-primary">{card.name}</p>
-                <p className="text-sm font-bold text-accent mt-0.5">
-                  From {card.price}<span className="text-xs font-normal text-secondary">/month</span>
-                </p>
-              </div>
-            ))}
+          <div className="flex flex-col items-center justify-center gap-5">
+            <div className="hidden md:flex flex-wrap items-center justify-center gap-2" aria-label="Insurance products">
+              {productNames.map((name) => (
+                <span key={name} className="rounded-full border border-border bg-white px-3 py-1.5 text-xs font-semibold text-primary shadow-sm">
+                  {name}
+                </span>
+              ))}
+            </div>
+            <ShieldIllustration className="w-64 md:w-72 lg:w-96 max-w-full" />
           </div>
         </div>
       </section>
 
-      {/* Features Strip */}
       <section id="features" className="bg-primary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -107,6 +99,52 @@ const LandingPage = () => {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="how-it-works" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
+        <div className="max-w-2xl">
+          <span className="eyebrow">A CLEAR PROCESS</span>
+          <h2 className="mt-3 text-3xl font-bold text-primary">How it works</h2>
+        </div>
+        <ol className="mt-9 grid gap-8 md:grid-cols-3">
+          {claimSteps.map((step) => (
+            <li key={step.number} className="border-t-2 border-accent pt-4">
+              <span className="text-xs font-semibold text-accent">STEP {step.number}</span>
+              <h3 className="mt-3 text-lg font-semibold text-primary">{step.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-secondary">{step.description}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="bg-white border-y border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
+          <div className="max-w-2xl">
+            <span className="eyebrow">BUILT AROUND YOUR CLAIM</span>
+            <h2 className="mt-3 text-3xl font-bold text-primary">Why InsureTrust</h2>
+          </div>
+          <div className="mt-9 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {features.map((feature) => (
+              <article key={feature.title} className="border-l-2 border-accent pl-4">
+                <feature.icon size={22} className="text-accent" aria-hidden="true" />
+                <h3 className="mt-3 text-sm font-semibold text-primary">{feature.title}</h3>
+                <p className="mt-1 text-sm leading-6 text-secondary">{feature.desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-primary">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 md:py-16 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-white">Start with a clearer claim process.</h2>
+            <p className="mt-2 text-sm text-white/70">Create an account to submit and follow your claim.</p>
+          </div>
+          <Button variant="secondary" size="lg" onClick={() => navigate('/signup')}>
+            Get Started
+          </Button>
         </div>
       </section>
     </div>
