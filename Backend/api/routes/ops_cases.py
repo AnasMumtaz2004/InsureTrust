@@ -1,14 +1,49 @@
 from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func, distinct
 from sqlalchemy.orm import Session
 from database.database import get_db
-from database.models import Claim, DebateTranscript, AuditLog, User
+from database.models import Claim, DebateTranscript, AuditLog, User, Decision
 from database.enums import ClaimStatus, Role
-from schemas.ops import CaseQueueItemResponse
+from schemas.ops import CaseQueueItemResponse, OpsUserResponse
 from graph.main_graph import claims_graph
 from api.deps import require_role
 
 router = APIRouter(prefix="/ops/cases", tags=["Back-Office Operations Queue"])
+users_router = APIRouter(prefix="/ops", tags=["Back-Office Operations"])
+
+
+@users_router.get("/users", response_model=List[OpsUserResponse])
+def get_operations_users(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(Role.STAFF, Role.ADMIN)),
+):
+    """List staff users and the number of distinct claims each has acted on."""
+    action_counts = dict(
+        db.query(
+            Decision.approved_by,
+            func.count(distinct(Decision.claim_id)),
+        )
+        .filter(Decision.approved_by.isnot(None), Decision.approved_by != "AUTO_SYSTEM")
+        .group_by(Decision.approved_by)
+        .all()
+    )
+    users = (
+        db.query(User)
+        .filter(User.role.in_([Role.STAFF.value, Role.ADMIN.value]))
+        .order_by(User.full_name.asc())
+        .all()
+    )
+    return [
+        OpsUserResponse(
+            id=user.id,
+            full_name=user.full_name,
+            email=user.email,
+            role=user.role,
+            claims_acted_on=action_counts.get(user.id, 0),
+        )
+        for user in users
+    ]
 
 @router.get("/queue", response_model=List[CaseQueueItemResponse])
 def get_operations_queue(

@@ -119,6 +119,26 @@ export function getOpsClaimDetail(claimId, token) {
   return request(`/ops/cases/${claimId}/graph-state`, { method: 'GET', token });
 }
 
+export function getCaseGraphState(claimId, token) {
+  return request(`/ops/cases/${claimId}/graph-state`, { method: 'GET', token });
+}
+
+export function getDebateTranscript(claimId, token) {
+  return request(`/ops/cases/${claimId}/debate-transcript`, { method: 'GET', token });
+}
+
+export function getAuditTrail(claimId, token) {
+  return request(`/ops/cases/${claimId}/audit-trail`, { method: 'GET', token });
+}
+
+export function submitDecisionAction(claimId, payload, token) {
+  return request(`/ops/decisions/${claimId}/action`, { method: 'POST', body: payload, token });
+}
+
+export function getOpsUsers(token) {
+  return request('/ops/users', { method: 'GET', token });
+}
+
 export function getOpsAnalytics(token) {
   return request('/analytics/kpis', { method: 'GET', token });
 }

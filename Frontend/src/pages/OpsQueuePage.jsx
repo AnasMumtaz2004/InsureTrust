@@ -43,6 +43,24 @@ const OpsQueuePage = () => {
     loadData();
   }, [token]);
 
+  useEffect(() => {
+    if (!token) return undefined;
+    let active = true;
+    const refreshClaims = async () => {
+      try {
+        const refreshedClaims = await getOpsClaims(token);
+        if (active) setClaims(refreshedClaims || []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    const intervalId = window.setInterval(refreshClaims, 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+    };
+  }, [token]);
+
   const handleSelectClaim = (claim) => {
     navigate(`/ops/case/${claim.claim_id || claim.id}`);
   };

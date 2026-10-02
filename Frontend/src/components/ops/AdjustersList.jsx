@@ -1,37 +1,53 @@
+import { useEffect, useState } from 'react';
 import { Avatar } from '../shared';
-
-const mockAdjusters = [
-  { name: 'Dr. Smith', status: 'online', activeClaims: 3 },
-  { name: 'J. Williams', status: 'online', activeClaims: 5 },
-  { name: 'R. Brown', status: 'away', activeClaims: 2 },
-  { name: 'A. Martinez', status: 'offline', activeClaims: 0 },
-  { name: 'K. Taylor', status: 'online', activeClaims: 4 },
-];
-
-const statusColors = {
-  online: 'bg-accent',
-  away: 'bg-warning',
-  offline: 'bg-secondary',
-};
+import { useAuth } from '../../auth/useAuth';
+import { getOpsUsers } from '../../api/clientApi';
 
 const AdjustersList = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const { token } = useAuth();
+
+  useEffect(() => {
+    let active = true;
+    const loadUsers = async () => {
+      if (!token) return;
+      try {
+        const result = await getOpsUsers(token);
+        if (active) setUsers(result || []);
+      } catch (requestError) {
+        if (active) setError(requestError.message || 'Unable to load staff users.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    loadUsers();
+    return () => { active = false; };
+  }, [token]);
+
   return (
     <div>
-      <h3 className="text-sm font-semibold text-primary mb-3">Active Adjusters</h3>
-      <div className="space-y-3">
-        {mockAdjusters.map((adjuster) => (
-          <div key={adjuster.name} className="flex items-center gap-3">
-            <div className="relative">
-              <Avatar name={adjuster.name} size="sm" />
-              <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${statusColors[adjuster.status]}`} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-primary truncate">{adjuster.name}</p>
-              <p className="text-xs text-secondary">{adjuster.activeClaims} active claims</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      <h3 className="mb-3 text-sm font-semibold text-primary">Staff Adjusters</h3>
+      {loading ? (
+        <p className="text-xs text-secondary">Loading staff…</p>
+      ) : error ? (
+        <p role="alert" className="text-xs text-red-600">{error}</p>
+      ) : users.length === 0 ? (
+        <p className="text-xs text-secondary">No staff users found.</p>
+      ) : (
+        <ul className="space-y-3">
+          {users.map((user) => (
+            <li key={user.id} className="flex min-w-0 items-center gap-3">
+              <Avatar name={user.full_name} size="sm" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-primary">{user.full_name}</p>
+                <p className="text-xs text-secondary">{user.claims_acted_on} claims acted on</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };

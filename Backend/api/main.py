@@ -11,7 +11,7 @@ from api.routes.auth import router as auth_router
 from api.routes.claims import router as claims_router
 from api.routes.documents import router as documents_router
 from api.routes.explanation import router as explanation_router
-from api.routes.ops_cases import router as ops_cases_router
+from api.routes.ops_cases import router as ops_cases_router, users_router as ops_users_router
 from api.routes.ops_decisions import router as ops_decisions_router
 from api.routes.analytics import router as analytics_router
 
@@ -46,6 +46,7 @@ app.include_router(claims_router, prefix=api_v1_prefix)
 app.include_router(documents_router, prefix=api_v1_prefix)
 app.include_router(explanation_router, prefix=api_v1_prefix)
 app.include_router(ops_cases_router, prefix=api_v1_prefix)
+app.include_router(ops_users_router, prefix=api_v1_prefix)
 app.include_router(ops_decisions_router, prefix=api_v1_prefix)
 app.include_router(analytics_router, prefix=api_v1_prefix)
 

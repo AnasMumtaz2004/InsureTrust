@@ -59,3 +59,11 @@ class QAChatResponse(BaseModel):
     question: str
     answer: str
     sources: List[str]
+
+
+class OpsUserResponse(BaseModel):
+    id: str
+    full_name: str
+    email: str
+    role: Literal["staff", "admin"]
+    claims_acted_on: int
